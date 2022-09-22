@@ -1,2 +1,1 @@
-# Labs-2nd-course
-Labs 2nd course
+# Here you can find fatalistix's labs from 2nd course
