@@ -1,0 +1,4 @@
+/opt/clion/bin/cmake/linux/bin/cmake -DCMAKE_BUILD_TYPE=Debug -DCMAKE_MAKE_PROGRAM=/opt/clion/bin/ninja/linux/ninja -G Ninja -S /home/vyacheslav/Documents/Programming/git/All-Projects-with-Jet-s-IDEAs/CLionProjects/CPP/CPP17/Labs-2-course-FIT/xf-Lab1-BigInt_ver2 -B /home/vyacheslav/Documents/Programming/git/All-Projects-with-Jet-s-IDEAs/CLionProjects/CPP/CPP17/Labs-2-course-FIT/xf-Lab1-BigInt_ver2/cmake-build-debug
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/vyacheslav/Documents/Programming/git/All-Projects-with-Jet-s-IDEAs/CLionProjects/CPP/CPP17/Labs-2-course-FIT/xf-Lab1-BigInt_ver2/cmake-build-debug

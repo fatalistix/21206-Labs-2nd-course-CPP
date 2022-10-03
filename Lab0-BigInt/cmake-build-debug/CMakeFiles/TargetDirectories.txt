@@ -1,0 +1,3 @@
+/home/vyacheslav/Documents/Programming/git/All-Projects-with-Jet-s-IDEAs/CLionProjects/CPP/CPP17/Labs-2-course-FIT/xf-Lab1-BigInt_ver2/cmake-build-debug/CMakeFiles/xf_Lab1_BigInt_ver2.dir
+/home/vyacheslav/Documents/Programming/git/All-Projects-with-Jet-s-IDEAs/CLionProjects/CPP/CPP17/Labs-2-course-FIT/xf-Lab1-BigInt_ver2/cmake-build-debug/CMakeFiles/edit_cache.dir
+/home/vyacheslav/Documents/Programming/git/All-Projects-with-Jet-s-IDEAs/CLionProjects/CPP/CPP17/Labs-2-course-FIT/xf-Lab1-BigInt_ver2/cmake-build-debug/CMakeFiles/rebuild_cache.dir
