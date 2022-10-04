@@ -1,0 +1,734 @@
+#include <cmath>
+#include <iostream>
+#include <limits>
+#include <string>
+#include <vector>
+
+typedef unsigned char uchar;
+
+class BigInt {
+private:
+    bool isNegative = false;
+    std::vector <uchar> numberArr;
+
+    // Addons
+
+    BigInt &operator>>=(size_t);
+
+    friend void PrintBigInt(const BigInt&);
+
+    friend void addRadix(BigInt &);
+    friend void purgeRadix(BigInt &);
+
+    friend uchar operator%(const BigInt&, const uchar&);
+
+public:
+    BigInt();
+
+    explicit BigInt(int);
+
+    explicit BigInt(std::string s);
+
+    BigInt(const BigInt&);
+
+    BigInt(BigInt&&) noexcept;
+
+    ~BigInt();
+
+    BigInt &operator=(const BigInt &);
+
+    BigInt &operator=(BigInt &&) noexcept;
+
+    BigInt operator~() const;
+
+    BigInt &operator++();
+
+    const BigInt operator++(int);
+
+    BigInt &operator--();
+
+    const BigInt operator--(int);
+
+    BigInt &operator+=(const BigInt &);
+
+    BigInt &operator*=(const BigInt &);
+
+    BigInt &operator-=(const BigInt &);
+
+    BigInt &operator/=(const BigInt &);
+
+    BigInt &operator^=(const BigInt &);
+
+    BigInt &operator%=(const BigInt &);
+
+    BigInt &operator&=(const BigInt &);
+
+    BigInt &operator|=(const BigInt &);
+
+    BigInt operator+() const; //unary
+    BigInt operator-() const; //unary
+
+    bool operator==(const BigInt &) const;
+
+    bool operator!=(const BigInt &) const;
+
+    bool operator<(const BigInt &) const;
+
+    bool operator>(const BigInt &) const;
+
+    bool operator<=(const BigInt &) const;
+
+    bool operator>=(const BigInt &) const;
+
+    explicit operator int() const;
+
+    explicit operator std::string() const;
+
+    [[nodiscard]] size_t size() const; //size in bytes
+};
+
+// Friend functions dor adding/deleting radixes
+
+void addRadix(BigInt& numberBI)
+{
+    numberBI.numberArr.push_back(numberBI.isNegative ? UINT8_MAX : 0);
+}
+
+void purgeRadix(BigInt& numberBI)
+{
+    for (size_t i = numberBI.numberArr.size() - 1; i > 0; i--)
+    {
+        if (!numberBI.numberArr[i] && !numberBI.isNegative ||
+            numberBI.numberArr[i] == UINT8_MAX && numberBI.isNegative)
+        {
+            numberBI.numberArr.pop_back();
+        }
+        else
+        {
+            break;
+        }
+    }
+}
+
+uchar operator%(const BigInt& numberBI, const uchar& numberUC)
+{
+    BigInt a(numberUC);
+    BigInt forRet(numberBI);
+    forRet %= a;
+    return forRet.numberArr[0];
+}
+
+void PrintBigInt(const BigInt& numberBI)
+{
+    for (size_t i = numberBI.numberArr.size(); i > 0; i--)
+    {
+        size_t j = i - 1;
+        std::cerr << (int)numberBI.numberArr[j] << ", ";
+    }
+    std::cerr << std::endl;
+}
+
+BigInt& BigInt::operator>>=(const size_t shift)
+{
+    size_t j(shift / UINT8_WIDTH);
+    size_t k(shift % UINT8_WIDTH);
+    for (size_t i = 0; i < numberArr.size(); i++)
+    {
+        int buf = (i + j < numberArr.size() ? numberArr[i + j] : isNegative ? UINT8_MAX : 0) +
+                ((i + j + 1 < numberArr.size() ? numberArr[i + j + 1] : isNegative ? UINT8_MAX : 0) << UINT8_WIDTH);
+        numberArr[i] = (buf >> int(k)) & UINT8_MAX;
+    }
+
+    purgeRadix(*this);
+    return *this;
+}
+
+BigInt operator+(const BigInt&, const BigInt&);
+BigInt operator-(const BigInt&, const BigInt&);
+BigInt operator*(const BigInt&, const BigInt&);
+BigInt operator/(const BigInt&, const BigInt&);
+BigInt operator^(const BigInt&, const BigInt&);
+BigInt operator%(const BigInt&, const BigInt&);
+BigInt operator&(const BigInt&, const BigInt&);
+BigInt operator|(const BigInt&, const BigInt&);
+
+std::ostream& operator<<(std::ostream& o, const BigInt& i);
+
+
+// Constructors
+
+BigInt::BigInt()=default;
+
+BigInt::BigInt(int numberInt)
+{
+    isNegative = (numberInt >> (sizeof(int) * UINT8_WIDTH - 1)) & 1;
+    for (size_t i = 0; i < sizeof(int); i++)
+    {
+        numberArr.push_back((numberInt >> (i * UINT8_WIDTH)) & UINT8_MAX);
+    }
+    purgeRadix(*this);
+}
+
+BigInt::BigInt(std::string s)
+{
+    size_t haveSign = (s[0] == '+' || s[0] == '-');
+    if (s.empty())
+    {
+        throw std::invalid_argument("got empty number");
+    }
+    if (haveSign && s.size() == 1)
+    {
+        throw std::invalid_argument("got only sign");
+    }
+    if (!haveSign && s[0] < '0' || s[0] > '9')
+    {
+        throw std::invalid_argument("string should consist of only numbers and sign");
+    }
+    numberArr.push_back(s[haveSign] - '0');
+    BigInt dec(10);
+    for (size_t i = haveSign + 1; i < s.size(); i++)
+    {
+        if (s[i] < '0' || s[i] > '9')
+        {
+            throw std::invalid_argument("string should consist of only numbers and sign");
+        }
+        *this = (*this) * dec + BigInt(s[i] - '0');
+    }
+    if (haveSign && s[0] == '-')
+    {
+        *this = -(*this);
+    }
+    purgeRadix(*this);
+}
+
+BigInt::BigInt(const BigInt& numberBI) : isNegative(numberBI.isNegative)
+{
+    for (uchar c : numberBI.numberArr)
+    {
+        numberArr.push_back(c);
+    }
+}
+
+BigInt::BigInt(BigInt&& numberBI) noexcept :
+    isNegative(numberBI.isNegative),
+    numberArr(std::move(numberBI.numberArr)) {}
+
+// Destructor
+
+BigInt::~BigInt()=default;
+
+// Operators
+
+// Assign operators
+
+BigInt& BigInt::operator=(const BigInt& numberBI)
+{
+    numberArr.resize(numberBI.numberArr.size());
+    for (size_t i = 0; i < numberBI.numberArr.size(); i++)
+    {
+        numberArr[i] = numberBI.numberArr[i];
+    }
+
+    isNegative = numberBI.isNegative;
+
+    return *this;
+}
+
+BigInt& BigInt::operator=(BigInt&& numberBI) noexcept
+{
+    isNegative = numberBI.isNegative;
+    numberArr  = numberBI.numberArr;
+    return *this;
+}
+
+// Invert bites operator
+
+BigInt BigInt::operator~() const
+{
+    BigInt forRet;
+    for (uchar c : this->numberArr)
+    {
+        forRet.numberArr.push_back(~c);
+    }
+    if (forRet.numberArr.size() == 1 && !forRet.numberArr[0] && forRet.isNegative)
+    {
+        forRet.isNegative = false;
+    }
+    return forRet;
+}
+
+// Increment operators
+
+BigInt& BigInt::operator++()
+{
+    *this += BigInt(1);
+    return *this;
+}
+
+const BigInt BigInt::operator++(int)
+{
+    BigInt forRet(*this);
+    ++(*this);
+    return forRet;
+}
+
+// Decrement operators
+
+BigInt& BigInt::operator--()
+{
+    *this -= BigInt(1);
+    return *this;
+}
+
+const BigInt BigInt:: operator--(int)
+{
+    BigInt forRet(*this);
+    --(*this);
+    return forRet;
+}
+
+// Binary operators with "="
+
+BigInt& BigInt::operator+=(const BigInt& numberBI)
+{
+    for (size_t i = numberArr.size(); i < numberBI.numberArr.size(); i++)
+    {
+        addRadix(*this);
+    }
+    addRadix(*this);
+
+    unsigned short carry = 0;
+    for (size_t i = 0; i < numberArr.size(); i++)
+    {
+        carry = numberArr[i] + carry + (i < numberBI.numberArr.size() ?
+                                        numberBI.numberArr[i] : numberBI.isNegative ? UINT8_MAX : 0);
+        numberArr[i] = (uchar)(carry & UINT8_MAX);
+        carry >>= 8;
+    }
+    if (((numberArr[numberArr.size() - 1] >> (UINT8_WIDTH - 1)) & 1) != isNegative)
+    {
+        isNegative = !isNegative;
+    }
+    purgeRadix(*this);
+    return *this;
+}
+
+BigInt& BigInt::operator*=(const BigInt& numberBI)
+{
+    BigInt a = isNegative ? -(*this) : *this;
+    BigInt b = numberBI.isNegative ? -numberBI : numberBI;
+
+    BigInt answer(0);
+
+    for (size_t i = 1; i < numberBI.numberArr.size(); i++)
+    {
+        answer.numberArr.push_back(0);
+    }
+
+    for (size_t i = answer.numberArr.size(); i < numberArr.size(); i++)
+    {
+        answer.numberArr.push_back(0);
+    }
+
+    for (size_t i = 0; i < numberBI.numberArr.size(); i++)
+    {
+        unsigned long long carry = 0;
+        answer.numberArr.push_back(0);
+        for (size_t j = 0; j < numberArr.size(); j++)
+        {
+            carry += answer.numberArr[i + j] + a.numberArr[j] * b.numberArr[i];
+            answer.numberArr[i + j] = (uchar)(carry & UINT8_MAX);
+            carry >>= 8;
+        }
+        answer.numberArr[i + numberArr.size()] += carry;
+    }
+    purgeRadix(answer);
+    isNegative ^= numberBI.isNegative;
+    if (isNegative)
+    {
+        *this = -answer;
+    }
+    else
+    {
+        *this = answer;
+    }
+    return *this;
+}
+
+BigInt& BigInt::operator-=(const BigInt& numberBI)
+{
+    BigInt inverted(-numberBI);
+    *this += inverted;
+    return *this;
+}
+
+BigInt& BigInt::operator/=(const BigInt& numberBI)
+{
+    BigInt a(isNegative ? -(*this) : *this);
+    BigInt b(numberBI.isNegative ? -numberBI : numberBI);
+
+    BigInt zero(0);
+
+    if (b == zero)
+    {
+        throw std::invalid_argument("division by zero");
+    }
+
+    BigInt one(1);
+    BigInt answer(a);
+    BigInt len(answer);
+
+    while (!((answer * b <= a) && ((answer + one) * b >= a)) && (len > zero))
+    {
+        if (answer * b > a)
+        {
+            answer -= len;
+            len >>= 1;
+        }
+        else if ((answer + one) * b < a)
+        {
+            answer += len;
+            len >>= 1;
+        }
+    }
+
+    while (answer * b >= a)
+    {
+        --answer;
+    }
+
+    while (answer * b <= a)
+    {
+        ++answer;
+    }
+
+    --answer;
+
+    isNegative ^= numberBI.isNegative;
+    if (isNegative)
+    {
+        *this = -answer;
+    }
+    else
+    {
+        *this = answer;
+    }
+    return *this;
+}
+
+BigInt& BigInt::operator^=(const BigInt& numberBI)
+{
+    for (size_t i = numberArr.size(); i < numberBI.numberArr.size(); i++)
+    {
+        addRadix(*this);
+    }
+    for (size_t i = 0; i < numberArr.size(); i++)
+    {
+        numberArr[i] ^= (i < numberBI.numberArr.size() ?
+                numberBI.numberArr[i] : isNegative ? UINT8_MAX : 0);
+    }
+
+    isNegative ^= numberBI.isNegative;
+    purgeRadix(*this);
+    return *this;
+}
+
+BigInt& BigInt::operator%=(const BigInt& numberBI)
+{
+    BigInt buf(*this);
+    buf /= numberBI;
+    buf *= numberBI;
+    *this -= buf;
+    return *this;
+}
+
+BigInt& BigInt::operator&=(const BigInt& numberBI)
+{
+    for (size_t i = numberArr.size(); i < numberBI.numberArr.size(); i++)
+    {
+        addRadix(*this);
+    }
+    for (size_t i = 0; i < numberArr.size(); i++)
+    {
+        numberArr[i] &= (i < numberBI.numberArr.size() ?
+                         numberBI.numberArr[i] : isNegative ? UINT8_MAX : 0);
+    }
+    isNegative &= numberBI.isNegative;
+    purgeRadix(*this);
+    return *this;
+}
+
+BigInt& BigInt::operator|=(const BigInt& numberBI)
+{
+    for (size_t i = numberArr.size(); i < numberBI.numberArr.size(); i++)
+    {
+        addRadix(*this);
+    }
+    for (size_t i = 0; i < numberArr.size(); i++)
+    {
+        numberArr[i] |= (i < numberBI.numberArr.size() ?
+                         numberBI.numberArr[i] : isNegative ? UINT8_MAX : 0);
+    }
+    isNegative |= numberBI.isNegative;
+    purgeRadix(*this);
+    return *this;
+}
+
+// Unary operators
+
+BigInt BigInt::operator+() const
+{
+    return *this;
+}
+
+BigInt BigInt::operator-() const
+{
+    BigInt forRet(~(*this));
+    forRet.isNegative = !isNegative;
+    ++forRet;
+    return forRet;
+}
+
+// Bool operators
+
+bool BigInt::operator==(const BigInt& numberBI) const
+{
+    if (!(isNegative ^ numberBI.isNegative))
+    {
+
+        if (numberArr.size() == numberBI.numberArr.size())
+        {
+            for (size_t i = 0; i < numberArr.size(); i++)
+            {
+                if (numberArr[i] != numberBI.numberArr[i])
+                {
+                    return false;
+                }
+            }
+            return true;
+        }
+    }
+    return false;
+}
+
+bool BigInt::operator!=(const BigInt &numberBI) const
+{
+    return !((*this) == numberBI);
+}
+
+bool BigInt::operator<(const BigInt& numberBI) const
+{
+    if (isNegative != numberBI.isNegative)
+    {
+        if (isNegative)
+        {
+            return true;
+        }
+        return false;
+    }
+    for (size_t j = (numberArr.size() > numberBI.numberArr.size() ?
+                     numberArr.size() : numberBI.numberArr.size()); j > 0; j--)
+    {
+        size_t i(j - 1);
+        if ((numberArr.size() < j ? isNegative ? -1 : 0 : numberArr[i]) >
+            (numberBI.numberArr.size() < j ? numberBI.isNegative ? -1 : 0 : numberBI.numberArr[i]))
+        {
+            return false;
+        }
+        if ((numberArr.size() < j ? isNegative ? -1 : 0 : numberArr[i]) <
+            (numberBI.numberArr.size() < j ? numberBI.isNegative ? -1 : 0 : numberBI.numberArr[i]))
+        {
+            return true;
+        }
+    }
+    return false;
+}
+
+bool BigInt::operator>(const BigInt& numberBI) const
+{
+    if (isNegative != numberBI.isNegative)
+    {
+        if (isNegative)
+        {
+            return false;
+        }
+        return true;
+    }
+    for (size_t j = (numberArr.size() > numberBI.numberArr.size() ?
+                     numberArr.size() : numberBI.numberArr.size()); j > 0; j--)
+    {
+        size_t i(j - 1);
+        if ((numberArr.size() < j ? isNegative ? -1 : 0 : numberArr[i]) >
+            (numberBI.numberArr.size() < j ? numberBI.isNegative ? -1 : 0 : numberBI.numberArr[i]))
+        {
+            return true;
+        }
+        if ((numberArr.size() < j ? isNegative ? -1 : 0 : numberArr[i]) <
+            (numberBI.numberArr.size() < j ? numberBI.isNegative ? -1 : 0 : numberBI.numberArr[i]))
+        {
+            return false;
+        }
+    }
+    return false;
+}
+
+bool BigInt::operator<=(const BigInt& numberBI) const
+{
+    return !(*this > numberBI);
+}
+
+bool BigInt::operator>=(const BigInt& numberBI) const
+{
+    return !(*this < numberBI);
+}
+
+// Different object's constructors
+
+BigInt::operator int() const
+{
+    int forRet(0);
+    int buf;
+    for (size_t i = 0; i < sizeof(int); i++)
+    {
+        buf = (i < numberArr.size() ? numberArr[i] : isNegative ? UINT8_MAX : 0);
+        forRet |= buf << (i * UINT8_WIDTH);
+    }
+    buf = (isNegative ? 1 : 0);
+    forRet &= INT32_MAX;
+    forRet |= buf << (INT32_WIDTH - 1);
+    return forRet;
+}
+
+BigInt::operator std::string() const
+{
+    std::string forRet;
+    std::vector <char> answer;
+    BigInt zero(0);
+    BigInt num(*this > zero ? *this : -(*this));
+
+    if (num == zero)
+    {
+        forRet.push_back('0');
+        return forRet;
+    }
+
+    while (num > zero)
+    {
+        answer.push_back((char)((num % (uchar)10) + '0'));
+        num /= BigInt(10);
+    }
+    if (*this < zero)
+    {
+        answer.push_back('-');
+    }
+    for (size_t i = answer.size(); i > 0; i--)
+    {
+        forRet.push_back(answer[i-1]);
+    }
+    return forRet;
+}
+
+// Size of BigInt with sign
+
+size_t BigInt::size() const
+{
+    return numberArr.size() + sizeof(isNegative);
+}
+
+// Binary operators
+
+BigInt operator+(const BigInt& a, const BigInt& b)
+{
+    BigInt forRet(a);
+    forRet += b;
+    return forRet;
+}
+
+BigInt operator-(const BigInt& a, const BigInt& b)
+{
+    BigInt forRet(a);
+    forRet -= b;
+    return forRet;
+}
+
+BigInt operator*(const BigInt& a, const BigInt& b)
+{
+    BigInt forRet(a);
+    forRet *= b;
+    return forRet;
+}
+
+BigInt operator/(const BigInt& a, const BigInt& b)
+{
+    BigInt forRet(a);
+    forRet /= b;
+    return forRet;
+}
+
+BigInt operator^(const BigInt& a, const BigInt& b)
+{
+    BigInt forRet(a);
+    forRet ^= b;
+    return forRet;
+}
+
+BigInt operator%(const BigInt& a, const BigInt& b)
+{
+    BigInt forRet(a);
+    forRet %= b;
+    return forRet;
+}
+
+BigInt operator&(const BigInt& a, const BigInt& b)
+{
+    BigInt forRet(a);
+    forRet &= b;
+    return forRet;
+}
+
+BigInt operator|(const BigInt& a, const BigInt& b)
+{
+    BigInt forRet(a);
+    forRet |= b;
+    return forRet;
+}
+
+// ostream operators
+
+std::ostream& operator<<(std::ostream& out, const BigInt& numberBI)
+{
+    std::vector <char> answer;
+    BigInt zero(0);
+    BigInt num(numberBI > zero ? numberBI : -numberBI);
+
+    //PrintBigInt(num);
+
+    if (num == zero)
+    {
+        return out << 0;
+    }
+
+    while (num > zero)
+    {
+        answer.push_back((char)((num % (uchar)10) + '0'));
+        num /= BigInt(10);
+    }
+    if (numberBI < zero)
+    {
+        answer.push_back('-');
+    }
+    for (size_t i = answer.size(); i > 0; i--)
+    {
+        out << answer[i-1];
+    }
+    return out;
+
+}
+
+std::istream& operator>>(std::istream& in, BigInt& numberBI)
+{
+    std::string s;
+    in >> s;
+    numberBI = BigInt(s);
+    return in;
+}
