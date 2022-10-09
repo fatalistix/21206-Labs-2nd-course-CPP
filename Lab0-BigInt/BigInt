@@ -267,12 +267,7 @@ namespace LongMath
 
     // Assign operators
 
-    BigInt& BigInt::operator=(const BigInt& numberBI)
-    {
-        numberArr  = numberBI.numberArr;
-        isNegative = numberBI.isNegative;
-        return *this;
-    }
+    BigInt& BigInt::operator=(const BigInt& numberBI)=default;
 
     BigInt& BigInt::operator=(BigInt&& numberBI) noexcept
     {
@@ -292,11 +287,15 @@ namespace LongMath
             forRet.numberArr.push_back(~c);
         }
 
-        // If we got "-0":
-        if (forRet.numberArr.size() == 1 && !forRet.numberArr[0] && forRet.isNegative)
-        {
-            forRet.isNegative = false;
-        }
+//        // If we got "-0":
+//        if (forRet.numberArr.size() == 1 && !forRet.numberArr[0] && forRet.isNegative)
+//        {
+//            forRet.isNegative = false;
+//        }
+
+        purgeRadix(forRet);
+
+        forRet.isNegative = !isNegative;
 
         return forRet;
     }
@@ -545,7 +544,6 @@ namespace LongMath
     BigInt BigInt::operator-() const
     {
         BigInt forRet(~(*this));
-        forRet.isNegative = !isNegative;
         ++forRet;
         return forRet;
     }
