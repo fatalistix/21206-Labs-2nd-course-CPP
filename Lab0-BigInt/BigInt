@@ -334,10 +334,11 @@ namespace LongMath
 
     BigInt& BigInt::operator+=(const BigInt& numberBI)
     {
-        for (size_t i = numberArr.size(); i <= numberBI.numberArr.size(); i++)
+        for (size_t i = numberArr.size(); i < numberBI.numberArr.size(); i++)
         {
             addRadix(*this);
         }
+        addRadix(*this);
 
         unsigned short carry = 0;
         for (size_t i = 0; i < numberArr.size(); i++)
