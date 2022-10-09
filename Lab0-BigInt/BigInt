@@ -649,8 +649,6 @@ namespace LongMath
             forRet |= (i < numberArr.size() ?
                        numberArr[i] : isNegative ? UINT8_MAX : 0) << (i * UINT8_WIDTH);
         }
-        forRet &= INT32_MAX;
-        forRet |= (isNegative ? 1 : 0) << (INT32_WIDTH - 1);
         return forRet;
     }
 
