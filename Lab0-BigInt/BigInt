@@ -1,3 +1,7 @@
+#ifndef iostream
+#include <iostream>
+#endif
+
 #ifndef limits
 #include <limits>
 #endif
@@ -9,6 +13,8 @@
 #ifndef vector
 #include <vector>
 #endif
+
+#define DEBUG
 
 namespace LongMath
 {
@@ -29,9 +35,17 @@ namespace LongMath
 
         BigInt(BigInt&&) noexcept;
 
+#ifdef DEBUG
+        explicit BigInt(std::vector<uchar> numberV) :
+            isNegative(numberV[numberV.size() - 1] > INT8_MAX),
+            numberArr(numberV) {}
+#endif
+
+        // Destructor
+
         ~BigInt();
 
-        // Operators
+        // Math operators
 
         BigInt &operator=(const BigInt &);
 
@@ -86,9 +100,23 @@ namespace LongMath
 
         explicit operator std::string() const;
 
+#ifdef DEBUG
+        const std::vector<uchar>& getArray()
+        {
+            return numberArr;
+        }
+#endif
+
         // Size
 
         [[nodiscard]] size_t size() const; //size in bytes
+
+#ifdef DEBUG
+        [[nodiscard]] bool lessZero() const
+        {
+            return isNegative;
+        }
+#endif
 
     private:
         bool isNegative = false;        // Sign { 0 if number >= 0; 1 if < 0}
@@ -97,6 +125,7 @@ namespace LongMath
 
         // Addons
 
+        // Byte shift, used in operator "/=" for quick division by 2
         BigInt &operator>>=(size_t shift)
         {
             const size_t j(shift / UINT8_WIDTH);
@@ -145,6 +174,7 @@ namespace LongMath
 
     // Useful constants
     const BigInt ZERO(0);
+    const BigInt ONE(1);
     const BigInt DEC (10);
 
     const size_t DECIMAL_SYSTEM_BASE = 10;
@@ -203,11 +233,12 @@ namespace LongMath
 
         for (size_t i = haveSign + 1; i < s.size(); i++)
         {
-            if (s[i] < '0' || s[i] > '9')
+            if (!std::isdigit(s[i]))
             {
                 throw std::invalid_argument("string should consist of only numbers and sign");
             }
-            *this = (*this) * DEC + BigInt(s[i] - '0');
+            (*this) *= DEC;
+            (*this) += BigInt(s[i] - '0');
         }
 
         if (haveSign && s[0] == '-')
@@ -218,7 +249,11 @@ namespace LongMath
         purgeRadix(*this);
     }
 
-    BigInt::BigInt(const BigInt& numberBI)=default;
+    BigInt::BigInt(const BigInt& numberBI) :
+        isNegative(numberBI.isNegative)
+    {
+        numberArr = numberBI.numberArr;
+    }
 
     BigInt::BigInt(BigInt&& numberBI) noexcept :
             isNegative(numberBI.isNegative),
@@ -232,13 +267,17 @@ namespace LongMath
 
     // Assign operators
 
-    BigInt& BigInt::operator=(const BigInt& numberBI)=default;
+    BigInt& BigInt::operator=(const BigInt& numberBI)
+    {
+        numberArr  = numberBI.numberArr;
+        isNegative = numberBI.isNegative;
+        return *this;
+    }
 
     BigInt& BigInt::operator=(BigInt&& numberBI) noexcept
     {
         isNegative = numberBI.isNegative;
-        std::move(numberBI.numberArr.begin(), numberBI.numberArr.end(),
-                  numberArr.begin());
+        numberArr  = std::move(numberBI.numberArr);
         return *this;
     }
 
@@ -266,7 +305,7 @@ namespace LongMath
 
     BigInt& BigInt::operator++()
     {
-        *this += BigInt(1);
+        *this += ONE;
         return *this;
     }
 
@@ -281,7 +320,7 @@ namespace LongMath
 
     BigInt& BigInt::operator--()
     {
-        *this -= BigInt(1);
+        *this -= ONE;
         return *this;
     }
 
@@ -384,35 +423,34 @@ namespace LongMath
             throw std::invalid_argument("division by zero");
         }
 
-        const BigInt one(1);
-        BigInt answer(a);
-        BigInt len(answer);
+        BigInt l(0);
+        BigInt r(a);
+        ++r;
+        BigInt m;
+        BigInt answer;
 
-        while (!((answer * b <= a) && ((answer + one) * b >= a)) && (len > ZERO))
+        while (l < r)
         {
-            if (answer * b > a)
+            m = r + l;
+            m >>= 1;
+            if (m * b > a)
             {
-                answer -= len;
-                len >>= 1;
+                r = m;
             }
-            else if ((answer + one) * b < a)
+            else if (m * b < a - b + ONE)
             {
-                answer += len;
-                len >>= 1;
+                l = m + ONE;
+            }
+            else
+            {
+                answer = m;
+                break;
             }
         }
-
-        while (answer * b >= a)
+        if (l == r)
         {
-            --answer;
+            answer = l;
         }
-
-        while (answer * b <= a)
-        {
-            ++answer;
-        }
-
-        --answer;
 
         isNegative ^= numberBI.isNegative;
 
@@ -539,7 +577,25 @@ namespace LongMath
             }
             return false;
         }
-        return numberArr < numberBI.numberArr;
+
+        for (size_t j = (numberArr.size() > numberBI.numberArr.size() ?
+                         numberArr.size() : numberBI.numberArr.size()); j > 0; j--)
+        {
+            const size_t i(j - 1);
+
+            if ((i <          numberArr.size() ?          numberArr[i] :          isNegative ? UINT8_MAX : 0) >
+                (i < numberBI.numberArr.size() ? numberBI.numberArr[i] : numberBI.isNegative ? UINT8_MAX : 0))
+            {
+                return false;
+            }
+
+            if ((i <          numberArr.size() ?          numberArr[i] :          isNegative ? UINT8_MAX : 0) <
+                (i < numberBI.numberArr.size() ? numberBI.numberArr[i] : numberBI.isNegative ? UINT8_MAX : 0))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     bool BigInt::operator>(const BigInt& numberBI) const
@@ -552,7 +608,25 @@ namespace LongMath
             }
             return true;
         }
-        return numberArr > numberBI.numberArr;
+
+        for (size_t j = (numberArr.size() > numberBI.numberArr.size() ?
+                         numberArr.size() : numberBI.numberArr.size()); j > 0; j--)
+        {
+            const size_t i(j - 1);
+
+            if ((i <          numberArr.size() ?          numberArr[i] :          isNegative ? UINT8_MAX : 0) <
+                (i < numberBI.numberArr.size() ? numberBI.numberArr[i] : numberBI.isNegative ? UINT8_MAX : 0))
+            {
+                return false;
+            }
+
+            if ((i <          numberArr.size() ?          numberArr[i] :          isNegative ? UINT8_MAX : 0) >
+                (i < numberBI.numberArr.size() ? numberBI.numberArr[i] : numberBI.isNegative ? UINT8_MAX : 0))
+            {
+                return true;
+            }
+        }
+        return false;
     }
 
     bool BigInt::operator<=(const BigInt& numberBI) const
@@ -566,6 +640,7 @@ namespace LongMath
     }
 
     // Different object's constructors
+
 
     BigInt::operator int() const
     {
