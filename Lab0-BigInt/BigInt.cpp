@@ -17,12 +17,12 @@ namespace LongMath {
         }
     }
 
-    BigInt BigInt::abs() const
-    {
-        BigInt forRet;
-        forRet.numberArr = numberArr;
-        return forRet;
-    }
+//    BigInt BigInt::abs()
+//    {
+//        BigInt forRet;
+//        forRet.numberArr = numberArr;
+//        return forRet;
+//    }
 
     BigInt &BigInt::operator>>=(size_t shift) {
         const size_t j(shift / UINT8_WIDTH);
@@ -195,8 +195,8 @@ namespace LongMath {
     }
 
     BigInt &BigInt::operator*=(const BigInt &numberBI) {
-        const BigInt a(         abs());
-        const BigInt b(numberBI.abs());
+        const BigInt a =          isNegative ? -(*this)  : *this;
+        const BigInt b = numberBI.isNegative ? -numberBI : numberBI;
 
         BigInt answer(0);
 
@@ -234,14 +234,14 @@ namespace LongMath {
 
     BigInt &BigInt::operator-=(const BigInt &numberBI) {
         const BigInt inverted(-numberBI);
-        return *this += inverted;
+        *this += inverted;
+        return *this;
     }
 
     BigInt &BigInt::operator/=(const BigInt &numberBI) {
         if (numberBI == ZERO) {
             throw std::invalid_argument("division by zero");
         }
-
         const BigInt a(isNegative ? -(*this) : *this);
         const BigInt b(numberBI.isNegative ? -numberBI : numberBI);
 
