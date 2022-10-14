@@ -111,7 +111,6 @@ namespace LongMath
         // Functions for manipulating void radixes
         void addRadix  ();
         void purgeRadix();
-        [[nodiscard]] BigInt abs() const;
     };
 
     // Useful constants
