@@ -42,6 +42,11 @@ TEST(PrivateMethods, AddRadix)
         num.addRadix();
         EXPECT_EQ(std::vector<uchar>({0, 250, 255}), num.getArray());
     }
+    {
+        BigInt num(std::vector<uchar>{255, 250});
+        num.addRadix();
+        EXPECT_EQ(std::vector<uchar>({255, 250, 255}), num.getArray());
+    }
 }
 
 TEST(PrivateMethods, PurgeRadix)
@@ -134,17 +139,30 @@ TEST(Constructors, IntConstructor)
     }
 }
 
-TEST(OperatorsWithAssignment, CopyAssign)
+TEST(Assignments, CopyAssignment)
 {
     BigInt a;
+    EXPECT_EQ(-ZERO, a =  ZERO);
+    EXPECT_EQ( ONE,  a =  ONE);
+    EXPECT_EQ(-ONE,  a = -ONE);
     {
         BigInt b;
         EXPECT_EQ(b, a = b);
     }
-    EXPECT_EQ(ONE, a = ONE);
-    EXPECT_EQ(-ZERO, a = ZERO);
     {
         BigInt b(120);
+        EXPECT_EQ(b, a = b);
+    }
+    {
+        BigInt b(255);
+        EXPECT_EQ(b, a = b);
+    }
+    {
+        BigInt b(256);
+        EXPECT_EQ(b, a = b);
+    }
+    {
+        BigInt b(370);
         EXPECT_EQ(b, a = b);
     }
     {
@@ -152,333 +170,386 @@ TEST(OperatorsWithAssignment, CopyAssign)
         EXPECT_EQ(b, a = b);
     }
     {
-        BigInt b(370);
+        BigInt b(-255);
         EXPECT_EQ(b, a = b);
     }
-    BigInt b(-370);
-    EXPECT_EQ(b, a = b);
+    {
+        BigInt b(-256);
+        EXPECT_EQ(b, a = b);
+    }
+    {
+        BigInt b(-370);
+        EXPECT_EQ(b, a = b);
+    }
 }
 
-TEST(OperatorsWithAssignment, MoveAssign)
+TEST(Assignments, MoveAssignment)
 {
     BigInt a;
-    {
-        BigInt b;
-        EXPECT_EQ(b, a = std::move(BigInt()));
-    }
-    EXPECT_EQ(ONE, a = std::move(BigInt(1)));
-    EXPECT_EQ(ZERO, a = std::move(-ZERO));
+    EXPECT_EQ(-ZERO,     a = std::move(BigInt( 0)));
+    EXPECT_EQ( ONE,      a = std::move(BigInt( 1)));
+    EXPECT_EQ(-ONE,      a = std::move(BigInt(-1)));
+    EXPECT_EQ( BigInt(), a = std::move(BigInt(  )));
     {
         BigInt b(120);
         EXPECT_EQ(BigInt(120), a = std::move(b));
+    }
+    {
+        BigInt b(255);
+        EXPECT_EQ(BigInt(255), a = std::move(b));
+    }
+    {
+        BigInt b(256);
+        EXPECT_EQ(BigInt(256), a = std::move(b));
+    }
+    {
+        BigInt b(370);
+        EXPECT_EQ(BigInt(370), a = std::move(b));
     }
     {
         BigInt b(-120);
         EXPECT_EQ(BigInt(-120), a = std::move(b));
     }
     {
-        BigInt b(370);
-        EXPECT_EQ(BigInt(370), a = std::move(b));
-    }
-    BigInt b(-370);
-    EXPECT_EQ(BigInt(-370), a = std::move(b));
-}
-
-TEST(OperatorsWithAssignment, Mul)
-{
-    {
-        for (size_t i = 1; i < UINT32_MAX; i<<=1)
-        {
-            for (size_t k = 0; k < 4; k++) {
-                int compare = static_cast<int>(i + k - 1);
-                BigInt b(compare);
-                b *= ZERO;
-                EXPECT_EQ(ZERO, b);
-            }
-        }
+        BigInt b(-255);
+        EXPECT_EQ(BigInt(-255), a = std::move(b));
     }
     {
-        for (size_t i = 1; i < UINT32_MAX; i<<=1)
-        {
-            for (size_t k = 0; k < 4; k++) {
-                int compare = static_cast<int>(i + k - 1);
-                BigInt b(compare);
-                BigInt buf(compare);
-                b *= ONE;
-                EXPECT_EQ(buf, b);
-            }
-        }
+        BigInt b(-256);
+        EXPECT_EQ(BigInt(-256), a = std::move(b));
     }
     {
-        {
-            BigInt a(13);
-            BigInt b(15);
-            b *= a;
-            EXPECT_EQ(b, BigInt(13*15));
-        }
-        {
-            BigInt a(13);
-            BigInt b(47);
-            b *= a;
-            EXPECT_EQ(b, BigInt(13 * 47));
-        }
-        {
-            BigInt a(13);
-            BigInt b(276);
-            b *= a;
-            EXPECT_EQ(b, BigInt(13 * 276));
-        }
-        {
-            BigInt a(276);
-            BigInt b(13);
-            b *= a;
-            EXPECT_EQ(b, BigInt(13 * 276));
-        }
-        {
-            BigInt a(UINT16_MAX + 10);
-            BigInt b(200);
-            b *= a;
-            EXPECT_EQ(b, BigInt(200 * (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(200);
-            BigInt b(UINT16_MAX + 10);
-            b *= a;
-            EXPECT_EQ(b, BigInt(200 * (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(300);
-            BigInt b(UINT16_MAX + 10);
-            b *= a;
-            EXPECT_EQ(b, BigInt(300 * (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(UINT16_MAX + 10);
-            BigInt b(300);
-            b *= a;
-            EXPECT_EQ(b, BigInt(300 * (UINT16_MAX + 10)));
-        }
-    }
-    {
-        {
-            BigInt a(-13);
-            BigInt b(15);
-            b *= a;
-            EXPECT_EQ(b, BigInt(-13 * 15));
-        }
-        {
-            BigInt a(-13);
-            BigInt b(47);
-            b *= a;
-            EXPECT_EQ(b, BigInt(-13 * 47));
-        }
-        {
-            BigInt a(-13);
-            BigInt b(276);
-            b *= a;
-            EXPECT_EQ(b, BigInt(-13 * 276));
-        }
-        {
-            BigInt a(-276);
-            BigInt b(13);
-            b *= a;
-            EXPECT_EQ(b, BigInt(-13 * 276));
-        }
-        {
-            BigInt a(-UINT16_MAX - 10);
-            BigInt b(200);
-            b *= a;
-            EXPECT_EQ(b, BigInt(-200 * (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(-200);
-            BigInt b(UINT16_MAX + 10);
-            b *= a;
-            EXPECT_EQ(b, BigInt(-200 * (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(-300);
-            BigInt b(UINT16_MAX + 10);
-            b *= a;
-            EXPECT_EQ(b, BigInt(-300 * (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(-UINT16_MAX - 10);
-            BigInt b(300);
-            b *= a;
-            EXPECT_EQ(b, BigInt(-300 * (UINT16_MAX + 10)));
-        }
-    }
-}
-
-TEST(OperatorsWithAssignment, Add)
-
-{
-    {
-        for (size_t i = 1; i < UINT32_MAX; i<<=1)
-        {
-            for (size_t k = 0; k < 4; k++) {
-                int compare = static_cast<int>(i + k - 1);
-                BigInt b(compare);
-                b += ZERO;
-                EXPECT_EQ(b, b);
-            }
-        }
-    }
-    {
-        {
-            BigInt a(13);
-            BigInt b(15);
-            b += a;
-            EXPECT_EQ(b, BigInt(13+15));
-        }
-        {
-            BigInt a(130);
-            BigInt b(178);
-            b += a;
-            EXPECT_EQ(b, BigInt(130 + 178));
-        }
-        {
-            BigInt a(13);
-            BigInt b(276);
-            b += a;
-            EXPECT_EQ(b, BigInt(13 + 276));
-        }
-        {
-            BigInt a(276);
-            BigInt b(13);
-            b += a;
-            EXPECT_EQ(b, BigInt(13 + 276));
-        }
-        {
-            BigInt a(UINT16_MAX + 10);
-            BigInt b(200);
-            b += a;
-            EXPECT_EQ(b, BigInt(200 + (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(200);
-            BigInt b(UINT16_MAX + 10);
-            b += a;
-            EXPECT_EQ(b, BigInt(200 + (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(300);
-            BigInt b(UINT16_MAX + 10);
-            b += a;
-            EXPECT_EQ(b, BigInt(300 + (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(UINT16_MAX + 10);
-            BigInt b(300);
-            b += a;
-            EXPECT_EQ(b, BigInt(300 + (UINT16_MAX + 10)));
-        }
-    }
-    {
-        {
-            BigInt a(-13);
-            BigInt b(15);
-            b += a;
-            EXPECT_EQ(b, BigInt(-13 + 15));
-        }
-        {
-            BigInt a(15);
-            BigInt b(-13);
-            b += a;
-            EXPECT_EQ(b, BigInt(-13 + 15));
-        }
-        {
-            BigInt a(-47);
-            BigInt b(13);
-            b += a;
-            EXPECT_EQ(b, BigInt(13 - 47));
-        }
-        {
-            BigInt a(13);
-            BigInt b(-47);
-            b += a;
-            EXPECT_EQ(b, BigInt(13 - 47));
-        }
-        {
-            BigInt a(-50);
-            BigInt b(276);
-            b += a;
-            EXPECT_EQ(b, BigInt(-50 + 276));
-        }
-        {
-            BigInt a(276);
-            BigInt b(-50);
-            b += a;
-            EXPECT_EQ(b, BigInt(-50 + 276));
-        }
-        {
-            BigInt a(-276);
-            BigInt b(50);
-            b += a;
-            EXPECT_EQ(b, BigInt(50 - 276));
-        }
-        {
-            BigInt a(50);
-            BigInt b(-276);
-            b += a;
-            EXPECT_EQ(b, BigInt(50 - 276));
-        }
-        {
-            BigInt a(-UINT16_MAX - 10);
-            BigInt b(200);
-            b += a;
-            EXPECT_EQ(b, BigInt(200 - (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(200);
-            BigInt b(-UINT16_MAX - 10);
-            b += a;
-            EXPECT_EQ(b, BigInt(200 - (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(-200);
-            BigInt b(UINT16_MAX + 10);
-            b += a;
-            EXPECT_EQ(b, BigInt(-200 + (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(UINT16_MAX + 10);
-            BigInt b(-200);
-            b += a;
-            EXPECT_EQ(b, BigInt(-200 + (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(-300);
-            BigInt b(UINT16_MAX + 10);
-            b += a;
-            EXPECT_EQ(b, BigInt(-300 + (UINT16_MAX + 10)));
-        }
-        {
-            BigInt a(-UINT16_MAX - 10);
-            BigInt b(300);
-            b += a;
-            EXPECT_EQ(b, BigInt(300 - (UINT16_MAX + 10)));
-        }
+        BigInt b(-370);
+        EXPECT_EQ(BigInt(-370), a = std::move(b));
     }
 }
 
 TEST(BitsOperators, Invert)
 {
     EXPECT_EQ(~ZERO, BigInt(~0));
-    EXPECT_EQ(~ONE,  BigInt(~1));
-    EXPECT_EQ(~BigInt(108), BigInt(~108));
-    EXPECT_EQ(~BigInt(255), BigInt(~255));
-    EXPECT_EQ(~BigInt(300), BigInt(~300));
-    EXPECT_EQ(~BigInt(INT16_MAX),       BigInt(~INT16_MAX));
-    EXPECT_EQ(~BigInt(INT32_MAX - 100), BigInt(~(INT32_MAX - 100)));
 
-    EXPECT_EQ(~BigInt(-1),  BigInt(~(-1)));
-    EXPECT_EQ(~BigInt(-108), BigInt(~(-108)));
-    EXPECT_EQ(~BigInt(-255), BigInt(~(-255)));
-    EXPECT_EQ(~BigInt(-300), BigInt(~(-300)));
+    EXPECT_EQ(~ONE,                      BigInt(~ 1));
+    EXPECT_EQ(~BigInt(108),              BigInt(~ 108));
+    EXPECT_EQ(~BigInt(255),              BigInt(~ 255));
+    EXPECT_EQ(~BigInt(256),              BigInt(~ 256));
+    EXPECT_EQ(~BigInt(300),              BigInt(~ 300));
+    EXPECT_EQ(~BigInt(INT16_MAX),        BigInt(~ INT16_MAX));
+    EXPECT_EQ(~BigInt(UINT16_MAX),       BigInt(~ UINT16_MAX));
+    EXPECT_EQ(~BigInt(UINT16_MAX + 1),   BigInt(~(UINT16_MAX + 1)));
+    EXPECT_EQ(~BigInt(INT32_MAX - 100),  BigInt(~(INT32_MAX - 100)));
+
+    EXPECT_EQ(~BigInt(-1),               BigInt(~(-1)));
+    EXPECT_EQ(~BigInt(-108),             BigInt(~(-108)));
+    EXPECT_EQ(~BigInt(-255),             BigInt(~(-255)));
+    EXPECT_EQ(~BigInt(-256),             BigInt(~(-256)));
+    EXPECT_EQ(~BigInt(-300),             BigInt(~(-300)));
     EXPECT_EQ(~BigInt(-INT16_MAX),       BigInt(~(-INT16_MAX)));
+    EXPECT_EQ(~BigInt(-UINT16_MAX),      BigInt(~(-UINT16_MAX)));
+    EXPECT_EQ(~BigInt(-UINT16_MAX - 1),  BigInt(~(-UINT16_MAX - 1)));
     EXPECT_EQ(~BigInt(-INT32_MAX + 100), BigInt(~(-INT32_MAX + 100)));
+}
+
+TEST(UnaryOperators, Minus)
+{
+    EXPECT_EQ(-ZERO, ZERO);
+
+    EXPECT_EQ(-ONE,                     BigInt(-1));
+    EXPECT_EQ(-BigInt(250),             BigInt(-250));
+    EXPECT_EQ(-BigInt(255),             BigInt(-255));
+    EXPECT_EQ(-BigInt(256),             BigInt(-256));
+    EXPECT_EQ(-BigInt(1000),            BigInt(-1000));
+    EXPECT_EQ(-BigInt(UINT16_MAX),      BigInt(-UINT16_MAX));
+    EXPECT_EQ(-BigInt(UINT16_MAX + 1),  BigInt(-(UINT16_MAX + 1)));
+
+    EXPECT_EQ(-BigInt(-1),              ONE);
+    EXPECT_EQ(-BigInt(-250),            BigInt(250));
+    EXPECT_EQ(-BigInt(-255),            BigInt(255));
+    EXPECT_EQ(-BigInt(-256),            BigInt(256));
+    EXPECT_EQ(-BigInt(-1000),           BigInt(1000));
+    EXPECT_EQ(-BigInt(-UINT16_MAX),     BigInt(-(-UINT16_MAX)));
+    EXPECT_EQ(-BigInt(-UINT16_MAX - 1), BigInt(-(-UINT16_MAX - 1)));
+}
+
+TEST(Constructors, CopyConstructor)
+{
+    EXPECT_EQ(BigInt(),     BigInt(BigInt()));
+    EXPECT_EQ(ZERO,         BigInt(-ZERO));
+
+    EXPECT_EQ(ONE,          BigInt(ONE));
+    EXPECT_EQ(BigInt(120),  BigInt(BigInt(120)));
+    EXPECT_EQ(BigInt(255),  BigInt(BigInt(255)));
+    EXPECT_EQ(BigInt(256),  BigInt(BigInt(256)));
+    EXPECT_EQ(BigInt(370),  BigInt(BigInt(370)));
+
+    EXPECT_EQ(-ONE,         BigInt(-ONE));
+    EXPECT_EQ(BigInt(-120), BigInt(BigInt(-120)));
+    EXPECT_EQ(BigInt(-255), BigInt(BigInt(-255)));
+    EXPECT_EQ(BigInt(-256), BigInt(BigInt(-256)));
+    EXPECT_EQ(BigInt(-370), BigInt(BigInt(-370)));
+}
+
+TEST(MathOperators, Mul)
+{
+    {
+        EXPECT_EQ(ZERO *  ZERO,           ZERO);
+        EXPECT_EQ(ZERO *  ONE,            ZERO);
+        EXPECT_EQ(ZERO *  BigInt(100),    ZERO);
+        EXPECT_EQ(ZERO *  BigInt(255),    ZERO);
+        EXPECT_EQ(ZERO *  BigInt(256),    ZERO);
+        EXPECT_EQ(ZERO *  BigInt(1000),   ZERO);
+        EXPECT_EQ(ZERO *  BigInt(300000), ZERO);
+
+        EXPECT_EQ(ZERO * -ZERO,           ZERO);
+        EXPECT_EQ(ZERO * -ONE,            ZERO);
+        EXPECT_EQ(ZERO * -BigInt(100),    ZERO);
+        EXPECT_EQ(ZERO * -BigInt(255),    ZERO);
+        EXPECT_EQ(ZERO * -BigInt(256),    ZERO);
+        EXPECT_EQ(ZERO * -BigInt(1000),   ZERO);
+        EXPECT_EQ(ZERO * -BigInt(300000), ZERO);
+    }
+    {
+        EXPECT_EQ( ONE *  ZERO,            ZERO);
+        EXPECT_EQ( ONE *  ONE,             ONE);
+        EXPECT_EQ( ONE *  BigInt(100),     BigInt(100));
+        EXPECT_EQ( ONE *  BigInt(255),     BigInt(255));
+        EXPECT_EQ( ONE *  BigInt(256),     BigInt(256));
+        EXPECT_EQ( ONE *  BigInt(1000),    BigInt(1000));
+        EXPECT_EQ( ONE *  BigInt(300000),  BigInt(300000));
+
+        EXPECT_EQ( ONE * -ZERO,            ZERO);
+        EXPECT_EQ( ONE * -ONE,            -ONE);
+        EXPECT_EQ( ONE * -BigInt(100),    -BigInt(100));
+        EXPECT_EQ( ONE * -BigInt(255),    -BigInt(255));
+        EXPECT_EQ( ONE * -BigInt(256),    -BigInt(256));
+        EXPECT_EQ( ONE * -BigInt(1000),   -BigInt(1000));
+        EXPECT_EQ( ONE * -BigInt(300000), -BigInt(300000));
+
+        EXPECT_EQ(-ONE *  ZERO,           -ZERO);
+        EXPECT_EQ(-ONE *  ONE,            -ONE);
+        EXPECT_EQ(-ONE *  BigInt(100),    -BigInt(100));
+        EXPECT_EQ(-ONE *  BigInt(255),    -BigInt(255));
+        EXPECT_EQ(-ONE *  BigInt(256),    -BigInt(256));
+        EXPECT_EQ(-ONE *  BigInt(1000),   -BigInt(1000));
+        EXPECT_EQ(-ONE *  BigInt(300000), -BigInt(300000));
+
+        EXPECT_EQ(-ONE * -ZERO,            ZERO);
+        EXPECT_EQ(-ONE * -ONE,             ONE);
+        EXPECT_EQ(-ONE * -BigInt(100),     BigInt(100));
+        EXPECT_EQ(-ONE * -BigInt(255),     BigInt(255));
+        EXPECT_EQ(-ONE * -BigInt(256),     BigInt(256));
+        EXPECT_EQ(-ONE * -BigInt(1000),    BigInt(1000));
+        EXPECT_EQ(-ONE * -BigInt(300000),  BigInt(300000));
+    }
+    {
+        EXPECT_EQ( BigInt(100) *  ZERO,            ZERO);
+        EXPECT_EQ( BigInt(100) *  ONE,             BigInt(100));
+        EXPECT_EQ( BigInt(100) *  BigInt(37),      BigInt(3700));
+        EXPECT_EQ( BigInt(100) *  BigInt(100),     BigInt(10000));
+        EXPECT_EQ( BigInt(100) *  BigInt(255),     BigInt(25500));
+        EXPECT_EQ( BigInt(100) *  BigInt(256),     BigInt(25600));
+        EXPECT_EQ( BigInt(100) *  BigInt(1000),    BigInt(100000));
+        EXPECT_EQ( BigInt(100) *  BigInt(300000),  BigInt(30000000));
+
+        EXPECT_EQ( BigInt(100) * -ZERO,            ZERO);
+        EXPECT_EQ( BigInt(100) * -ONE,            -BigInt(100));
+        EXPECT_EQ( BigInt(100) * -BigInt(37),     -BigInt(3700));
+        EXPECT_EQ( BigInt(100) * -BigInt(100),    -BigInt(10000));
+        EXPECT_EQ( BigInt(100) * -BigInt(255),    -BigInt(25500));
+        EXPECT_EQ( BigInt(100) * -BigInt(256),    -BigInt(25600));
+        EXPECT_EQ( BigInt(100) * -BigInt(1000),   -BigInt(100000));
+        EXPECT_EQ( BigInt(100) * -BigInt(300000), -BigInt(30000000));
+
+        EXPECT_EQ(-BigInt(100) *  ZERO,            ZERO);
+        EXPECT_EQ(-BigInt(100) *  ONE,            -BigInt(100));
+        EXPECT_EQ(-BigInt(100) *  BigInt(37),     -BigInt(3700));
+        EXPECT_EQ(-BigInt(100) *  BigInt(100),    -BigInt(10000));
+        EXPECT_EQ(-BigInt(100) *  BigInt(255),    -BigInt(25500));
+        EXPECT_EQ(-BigInt(100) *  BigInt(256),    -BigInt(25600));
+        EXPECT_EQ(-BigInt(100) *  BigInt(1000),   -BigInt(100000));
+        EXPECT_EQ(-BigInt(100) *  BigInt(300000), -BigInt(30000000));
+
+        EXPECT_EQ(-BigInt(100) * -ZERO,            ZERO);
+        EXPECT_EQ(-BigInt(100) * -ONE,             BigInt(100));
+        EXPECT_EQ(-BigInt(100) * -BigInt(37),      BigInt(3700));
+        EXPECT_EQ(-BigInt(100) * -BigInt(100),     BigInt(10000));
+        EXPECT_EQ(-BigInt(100) * -BigInt(255),     BigInt(25500));
+        EXPECT_EQ(-BigInt(100) * -BigInt(256),     BigInt(25600));
+        EXPECT_EQ(-BigInt(100) * -BigInt(1000),    BigInt(100000));
+        EXPECT_EQ(-BigInt(100) * -BigInt(300000),  BigInt(30000000));
+    }
+    {
+        EXPECT_EQ( BigInt(1000) *  ZERO,            ZERO);
+        EXPECT_EQ( BigInt(1000) *  ONE,             BigInt(1000));
+        EXPECT_EQ( BigInt(1000) *  BigInt(100),     BigInt(100000));
+        EXPECT_EQ( BigInt(1000) *  BigInt(255),     BigInt(255000));
+        EXPECT_EQ( BigInt(1000) *  BigInt(256),     BigInt(256000));
+        EXPECT_EQ( BigInt(1000) *  BigInt(786),     BigInt(786000));
+        EXPECT_EQ( BigInt(1000) *  BigInt(1000),    BigInt(1000000));
+        EXPECT_EQ( BigInt(1000) *  BigInt(5678),    BigInt(5678000));
+        EXPECT_EQ( BigInt(1000) *  BigInt(300000),  BigInt(300000000));
+
+        EXPECT_EQ(-BigInt(1000) *  ZERO,            ZERO);
+        EXPECT_EQ(-BigInt(1000) *  ONE,            -BigInt(1000));
+        EXPECT_EQ(-BigInt(1000) *  BigInt(100),    -BigInt(100000));
+        EXPECT_EQ(-BigInt(1000) *  BigInt(255),    -BigInt(255000));
+        EXPECT_EQ(-BigInt(1000) *  BigInt(256),    -BigInt(256000));
+        EXPECT_EQ(-BigInt(1000) *  BigInt(786),    -BigInt(786000));
+        EXPECT_EQ(-BigInt(1000) *  BigInt(1000),   -BigInt(1000000));
+        EXPECT_EQ(-BigInt(1000) *  BigInt(5678),   -BigInt(5678000));
+        EXPECT_EQ(-BigInt(1000) *  BigInt(300000), -BigInt(300000000));
+
+        EXPECT_EQ( BigInt(1000) * -ZERO,            ZERO);
+        EXPECT_EQ( BigInt(1000) * -ONE,            -BigInt(1000));
+        EXPECT_EQ( BigInt(1000) * -BigInt(100),    -BigInt(100000));
+        EXPECT_EQ( BigInt(1000) * -BigInt(255),    -BigInt(255000));
+        EXPECT_EQ( BigInt(1000) * -BigInt(256),    -BigInt(256000));
+        EXPECT_EQ( BigInt(1000) * -BigInt(786),    -BigInt(786000));
+        EXPECT_EQ( BigInt(1000) * -BigInt(1000),   -BigInt(1000000));
+        EXPECT_EQ( BigInt(1000) * -BigInt(5678),   -BigInt(5678000));
+        EXPECT_EQ( BigInt(1000) * -BigInt(300000), -BigInt(300000000));
+
+        EXPECT_EQ(-BigInt(1000) * -ZERO,            ZERO);
+        EXPECT_EQ(-BigInt(1000) * -ONE,             BigInt(1000));
+        EXPECT_EQ(-BigInt(1000) * -BigInt(100),     BigInt(100000));
+        EXPECT_EQ(-BigInt(1000) * -BigInt(255),     BigInt(255000));
+        EXPECT_EQ(-BigInt(1000) * -BigInt(256),     BigInt(256000));
+        EXPECT_EQ(-BigInt(1000) * -BigInt(786),     BigInt(786000));
+        EXPECT_EQ(-BigInt(1000) * -BigInt(1000),    BigInt(1000000));
+        EXPECT_EQ(-BigInt(1000) * -BigInt(5678),    BigInt(5678000));
+        EXPECT_EQ(-BigInt(1000) * -BigInt(300000),  BigInt(300000000));
+    }
+}
+
+TEST(MathOperators, Add)
+{
+    {
+        EXPECT_EQ(ZERO +  ZERO,           ZERO);
+        EXPECT_EQ(ZERO +  ONE,            ONE);
+        EXPECT_EQ(ZERO +  BigInt(100),    BigInt(100));
+        EXPECT_EQ(ZERO +  BigInt(255),    BigInt(255));
+        EXPECT_EQ(ZERO +  BigInt(256),    BigInt(256));
+        EXPECT_EQ(ZERO +  BigInt(1000),   BigInt(1000));
+        EXPECT_EQ(ZERO +  BigInt(300000), BigInt(300000));
+
+        EXPECT_EQ(ZERO + -ZERO,           ZERO);
+        EXPECT_EQ(ZERO + -ONE,            -ONE);
+        EXPECT_EQ(ZERO + -BigInt(100),    -BigInt(100));
+        EXPECT_EQ(ZERO + -BigInt(255),    -BigInt(255));
+        EXPECT_EQ(ZERO + -BigInt(256),    -BigInt(256));
+        EXPECT_EQ(ZERO + -BigInt(1000),   -BigInt(1000));
+        EXPECT_EQ(ZERO + -BigInt(300000), -BigInt(300000));
+    }
+    {
+        EXPECT_EQ( ONE +  ZERO,            ONE);
+        EXPECT_EQ( ONE +  ONE,             BigInt(2));
+        EXPECT_EQ( ONE +  BigInt(100),     BigInt(101));
+        EXPECT_EQ( ONE +  BigInt(255),     BigInt(256));
+        EXPECT_EQ( ONE +  BigInt(256),     BigInt(257));
+        EXPECT_EQ( ONE +  BigInt(1000),    BigInt(1001));
+        EXPECT_EQ( ONE +  BigInt(300000),  BigInt(300001));
+
+        EXPECT_EQ( ONE + -ZERO,            ONE);
+        EXPECT_EQ( ONE + -ONE,            -ZERO);
+        EXPECT_EQ( ONE + -BigInt(100),    -BigInt(99));
+        EXPECT_EQ( ONE + -BigInt(255),    -BigInt(254));
+        EXPECT_EQ( ONE + -BigInt(256),    -BigInt(255));
+        EXPECT_EQ( ONE + -BigInt(1000),   -BigInt(999));
+        EXPECT_EQ( ONE + -BigInt(300000), -BigInt(299999));
+
+        EXPECT_EQ(-ONE +  ZERO,           -ONE);
+        EXPECT_EQ(-ONE +  ONE,             ZERO);
+        EXPECT_EQ(-ONE +  BigInt(100),     BigInt(99));
+        EXPECT_EQ(-ONE +  BigInt(255),     BigInt(254));
+        EXPECT_EQ(-ONE +  BigInt(256),     BigInt(255));
+        EXPECT_EQ(-ONE +  BigInt(1000),    BigInt(999));
+        EXPECT_EQ(-ONE +  BigInt(300000),  BigInt(299999));
+
+        EXPECT_EQ(-ONE + -ZERO,           -ONE);
+        EXPECT_EQ(-ONE + -ONE,            -BigInt(2));
+        EXPECT_EQ(-ONE + -BigInt(100),    -BigInt(101));
+        EXPECT_EQ(-ONE + -BigInt(255),    -BigInt(256));
+        EXPECT_EQ(-ONE + -BigInt(256),    -BigInt(257));
+        EXPECT_EQ(-ONE + -BigInt(1000),   -BigInt(1001));
+        EXPECT_EQ(-ONE + -BigInt(300000), -BigInt(300001));
+    }
+    {
+        EXPECT_EQ( BigInt(100) +  ZERO,            BigInt(100));
+        EXPECT_EQ( BigInt(100) +  ONE,             BigInt(101));
+        EXPECT_EQ( BigInt(100) +  BigInt(37),      BigInt(137));
+        EXPECT_EQ( BigInt(100) +  BigInt(100),     BigInt(200));
+        EXPECT_EQ( BigInt(100) +  BigInt(255),     BigInt(355));
+        EXPECT_EQ( BigInt(100) +  BigInt(256),     BigInt(356));
+        EXPECT_EQ( BigInt(100) +  BigInt(1000),    BigInt(1100));
+        EXPECT_EQ( BigInt(100) +  BigInt(300000),  BigInt(300100));
+
+        EXPECT_EQ( BigInt(100) + -ZERO,            BigInt(100));
+        EXPECT_EQ( BigInt(100) + -ONE,             BigInt(99));
+        EXPECT_EQ( BigInt(100) + -BigInt(37),      BigInt(63));
+        EXPECT_EQ( BigInt(100) + -BigInt(100),     ZERO);
+        EXPECT_EQ( BigInt(100) + -BigInt(255),    -BigInt(155));
+        EXPECT_EQ( BigInt(100) + -BigInt(256),    -BigInt(156));
+        EXPECT_EQ( BigInt(100) + -BigInt(1000),   -BigInt(900));
+        EXPECT_EQ( BigInt(100) + -BigInt(300000), -BigInt(299900));
+
+        EXPECT_EQ(-BigInt(100) +  ZERO,           -BigInt(100));
+        EXPECT_EQ(-BigInt(100) +  ONE,            -BigInt(99));
+        EXPECT_EQ(-BigInt(100) +  BigInt(37),     -BigInt(63));
+        EXPECT_EQ(-BigInt(100) +  BigInt(100),     ZERO);
+        EXPECT_EQ(-BigInt(100) +  BigInt(255),     BigInt(155));
+        EXPECT_EQ(-BigInt(100) +  BigInt(256),     BigInt(156));
+        EXPECT_EQ(-BigInt(100) +  BigInt(1000),    BigInt(900));
+        EXPECT_EQ(-BigInt(100) +  BigInt(300000),  BigInt(299900));
+
+        EXPECT_EQ(-BigInt(100) + -ZERO,           -BigInt(100));
+        EXPECT_EQ(-BigInt(100) + -ONE,            -BigInt(101));
+        EXPECT_EQ(-BigInt(100) + -BigInt(37),     -BigInt(137));
+        EXPECT_EQ(-BigInt(100) + -BigInt(100),    -BigInt(200));
+        EXPECT_EQ(-BigInt(100) + -BigInt(255),    -BigInt(355));
+        EXPECT_EQ(-BigInt(100) + -BigInt(256),    -BigInt(356));
+        EXPECT_EQ(-BigInt(100) + -BigInt(1000),   -BigInt(1100));
+        EXPECT_EQ(-BigInt(100) + -BigInt(300000), -BigInt(300100));
+    }
+    {
+        EXPECT_EQ( BigInt(1000) +  ZERO,            BigInt(1000));
+        EXPECT_EQ( BigInt(1000) +  ONE,             BigInt(1001));
+        EXPECT_EQ( BigInt(1000) +  BigInt(100),     BigInt(1100));
+        EXPECT_EQ( BigInt(1000) +  BigInt(255),     BigInt(1255));
+        EXPECT_EQ( BigInt(1000) +  BigInt(256),     BigInt(1256));
+        EXPECT_EQ( BigInt(1000) +  BigInt(786),     BigInt(1786));
+        EXPECT_EQ( BigInt(1000) +  BigInt(1000),    BigInt(2000));
+        EXPECT_EQ( BigInt(1000) +  BigInt(5678),    BigInt(6678));
+        EXPECT_EQ( BigInt(1000) +  BigInt(300000),  BigInt(301000));
+
+        EXPECT_EQ(-BigInt(1000) +  ZERO,           -BigInt(1000));
+        EXPECT_EQ(-BigInt(1000) +  ONE,            -BigInt(999));
+        EXPECT_EQ(-BigInt(1000) +  BigInt(100),    -BigInt(900));
+        EXPECT_EQ(-BigInt(1000) +  BigInt(255),    -BigInt(745));
+        EXPECT_EQ(-BigInt(1000) +  BigInt(256),    -BigInt(744));
+        EXPECT_EQ(-BigInt(1000) +  BigInt(786),    -BigInt(214));
+        EXPECT_EQ(-BigInt(1000) +  BigInt(1000),    ZERO);
+        EXPECT_EQ(-BigInt(1000) +  BigInt(5678),    BigInt(4678));
+        EXPECT_EQ(-BigInt(1000) +  BigInt(300000),  BigInt(299000));
+
+        EXPECT_EQ( BigInt(1000) + -ZERO,            BigInt(1000));
+        EXPECT_EQ( BigInt(1000) + -ONE,             BigInt(999));
+        EXPECT_EQ( BigInt(1000) + -BigInt(100),     BigInt(900));
+        EXPECT_EQ( BigInt(1000) + -BigInt(255),     BigInt(745));
+        EXPECT_EQ( BigInt(1000) + -BigInt(256),     BigInt(744));
+        EXPECT_EQ( BigInt(1000) + -BigInt(786),     BigInt(214));
+        EXPECT_EQ( BigInt(1000) + -BigInt(1000),    ZERO);
+        EXPECT_EQ( BigInt(1000) + -BigInt(5678),   -BigInt(4678));
+        EXPECT_EQ( BigInt(1000) + -BigInt(300000), -BigInt(299000));
+
+        EXPECT_EQ(-BigInt(1000) + -ZERO,           -BigInt(1000));
+        EXPECT_EQ(-BigInt(1000) + -ONE,            -BigInt(1001));
+        EXPECT_EQ(-BigInt(1000) + -BigInt(100),    -BigInt(1100));
+        EXPECT_EQ(-BigInt(1000) + -BigInt(255),    -BigInt(1255));
+        EXPECT_EQ(-BigInt(1000) + -BigInt(256),    -BigInt(1256));
+        EXPECT_EQ(-BigInt(1000) + -BigInt(786),    -BigInt(1786));
+        EXPECT_EQ(-BigInt(1000) + -BigInt(1000),   -BigInt(2000));
+        EXPECT_EQ(-BigInt(1000) + -BigInt(5678),   -BigInt(6678));
+        EXPECT_EQ(-BigInt(1000) + -BigInt(300000), -BigInt(301000));
+    }
 }
 
 TEST(Increments, PrefixIncrement)
@@ -487,17 +558,6 @@ TEST(Increments, PrefixIncrement)
     EXPECT_EQ(++BigInt(-1), ZERO);
     EXPECT_EQ(++BigInt(-256), BigInt(-255));
     EXPECT_EQ(++BigInt(255),  BigInt(256));
-}
-
-TEST(UnaryOperators, Minus)
-{
-    EXPECT_EQ(-ZERO, ZERO);
-    EXPECT_EQ(-ONE, BigInt(-1));
-    EXPECT_EQ(-BigInt(-1), ONE);
-    EXPECT_EQ(-BigInt(250), BigInt(-250));
-    EXPECT_EQ(-BigInt(-250), BigInt(250));
-    EXPECT_EQ(-BigInt(-1000), BigInt(1000));
-    EXPECT_EQ(-BigInt(1000), BigInt(-1000));
 }
 
 TEST(Constructors, StringConstructor)
@@ -556,17 +616,6 @@ TEST(Constructors, StringConstructor)
     EXPECT_THROW(BigInt("!499"),     std::invalid_argument);
     EXPECT_THROW(BigInt("-!499"),    std::invalid_argument);
     EXPECT_THROW(BigInt("+!487"),    std::invalid_argument);
-}
-
-TEST(Constructors, CopyConstructor)
-{
-    EXPECT_EQ(BigInt(), BigInt(BigInt()));
-    EXPECT_EQ(ONE, BigInt(ONE));
-    EXPECT_EQ(ZERO, BigInt(-ZERO));
-    EXPECT_EQ(BigInt(120), BigInt(BigInt(120)));
-    EXPECT_EQ(BigInt(-120), BigInt(BigInt(-120)));
-    EXPECT_EQ(BigInt(370), BigInt(BigInt(370)));
-    EXPECT_EQ(BigInt(-370), BigInt(BigInt(-370)));
 }
 
 TEST(Constructors, MoveConstructor)
@@ -636,6 +685,95 @@ TEST(Increments, PostfixDecrement)
         EXPECT_EQ(a, BigInt(-256));
     }
 
+}
+
+TEST(Operators, Div)
+{
+    EXPECT_THROW(BigInt("-123192872398473298") / ZERO, std::invalid_argument);
+    {
+        EXPECT_EQ(ZERO / ONE,             ZERO);
+        EXPECT_EQ(ZERO / DEC,             ZERO);
+        EXPECT_EQ(ZERO / BigInt(250),     ZERO);
+        EXPECT_EQ(ZERO / BigInt(1000),    ZERO);
+        EXPECT_EQ(ZERO / BigInt(300000),  ZERO);
+
+        EXPECT_EQ(ZERO / -ONE,            ZERO);
+        EXPECT_EQ(ZERO / -DEC,            ZERO);
+        EXPECT_EQ(ZERO / BigInt(-250),    ZERO);
+        EXPECT_EQ(ZERO / BigInt(-1000),   ZERO);
+        EXPECT_EQ(ZERO / BigInt(-300000), ZERO);
+    }
+    {
+        EXPECT_EQ(DEC             / ONE,   DEC);
+        EXPECT_EQ(BigInt(250)     / ONE,   BigInt(250));
+        EXPECT_EQ(BigInt(1000)    / ONE,   BigInt(1000));
+        EXPECT_EQ(BigInt(300000)  / ONE,   BigInt(300000));
+
+        EXPECT_EQ(-DEC            / ONE,  -DEC);
+        EXPECT_EQ(-BigInt(250)    / ONE,  -BigInt(250));
+        EXPECT_EQ(-BigInt(1000)   / ONE,  -BigInt(1000));
+        EXPECT_EQ(-BigInt(300000) / ONE,  -BigInt(300000));
+
+        EXPECT_EQ(DEC             / -ONE, -DEC);
+        EXPECT_EQ(BigInt(250)     / -ONE, -BigInt(250));
+        EXPECT_EQ(BigInt(1000)    / -ONE, -BigInt(1000));
+        EXPECT_EQ(BigInt(300000)  / -ONE, -BigInt(300000));
+
+        EXPECT_EQ(-DEC            / -ONE,  DEC);
+        EXPECT_EQ(-BigInt(250)    / -ONE,  BigInt(250));
+        EXPECT_EQ(-BigInt(1000)   / -ONE,  BigInt(1000));
+        EXPECT_EQ(-BigInt(300000) / -ONE,  BigInt(300000));
+    }
+    {
+        EXPECT_EQ(BigInt(135)  / BigInt(13),       BigInt(10));
+        EXPECT_EQ(BigInt(135)  / BigInt(135),      ONE);
+        EXPECT_EQ(BigInt(135)  / BigInt(250),      ZERO);
+        EXPECT_EQ(BigInt(135)  / BigInt(1000),     ZERO);
+        EXPECT_EQ(BigInt(135)  / BigInt(300000),   ZERO);
+
+        EXPECT_EQ(BigInt(-135) / BigInt(13),      -BigInt(10));
+        EXPECT_EQ(BigInt(-135) / BigInt(135),     -ONE);
+        EXPECT_EQ(BigInt(-135) / BigInt(250),     -ZERO);
+        EXPECT_EQ(BigInt(-135) / BigInt(1000),    -ZERO);
+        EXPECT_EQ(BigInt(-135) / BigInt(300000),  -ZERO);
+
+        EXPECT_EQ(BigInt(135)  / BigInt(-13),     -BigInt(10));
+        EXPECT_EQ(BigInt(135)  / BigInt(-135),    -ONE);
+        EXPECT_EQ(BigInt(135)  / BigInt(-250),    -ZERO);
+        EXPECT_EQ(BigInt(135)  / BigInt(-1000),   -ZERO);
+        EXPECT_EQ(BigInt(135)  / BigInt(-300000), -ZERO);
+
+        EXPECT_EQ(BigInt(-135) / BigInt(-13),      BigInt(10));
+        EXPECT_EQ(BigInt(-135) / BigInt(-135),     ONE);
+        EXPECT_EQ(BigInt(-135) / BigInt(-250),     ZERO);
+        EXPECT_EQ(BigInt(-135) / BigInt(-1000),    ZERO);
+        EXPECT_EQ(BigInt(-135) / BigInt(-300000),  ZERO);
+    }
+    {
+        EXPECT_EQ(BigInt(1000)  / BigInt(13), BigInt(76));
+        EXPECT_EQ(BigInt(1000)  / BigInt(487), BigInt(2));
+        EXPECT_EQ(BigInt(1000)  / BigInt(1000), ONE);
+        EXPECT_EQ(BigInt(1000)  / BigInt(5678), ZERO);
+        EXPECT_EQ(BigInt(1000)  / BigInt(300000), ZERO);
+
+        EXPECT_EQ(BigInt(-1000) / BigInt(13), -BigInt(76));
+        EXPECT_EQ(BigInt(-1000) / BigInt(487), -BigInt(2));
+        EXPECT_EQ(BigInt(-1000) / BigInt(1000), -ONE);
+        EXPECT_EQ(BigInt(-1000) / BigInt(5678), -ZERO);
+        EXPECT_EQ(BigInt(-1000) / BigInt(300000), -ZERO);
+
+        EXPECT_EQ(BigInt(1000)  / BigInt(-13), -BigInt(76));
+        EXPECT_EQ(BigInt(1000)  / BigInt(-487), -BigInt(2));
+        EXPECT_EQ(BigInt(1000)  / BigInt(-1000), -ONE);
+        EXPECT_EQ(BigInt(1000)  / BigInt(-5678), -ZERO);
+        EXPECT_EQ(BigInt(1000)  / BigInt(-300000), -ZERO);
+
+        EXPECT_EQ(BigInt(-1000) / BigInt(-13), BigInt(76));
+        EXPECT_EQ(BigInt(-1000) / BigInt(-487), BigInt(2));
+        EXPECT_EQ(BigInt(-1000) / BigInt(-1000), ONE);
+        EXPECT_EQ(BigInt(-1000) / BigInt(-5678), ZERO);
+        EXPECT_EQ(BigInt(-1000) / BigInt(-300000), ZERO);
+    }
 }
 
 int main()
