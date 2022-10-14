@@ -17,13 +17,6 @@ namespace LongMath {
         }
     }
 
-//    BigInt BigInt::abs()
-//    {
-//        BigInt forRet;
-//        forRet.numberArr = numberArr;
-//        return forRet;
-//    }
-
     BigInt &BigInt::operator>>=(size_t shift) {
         const size_t j(shift / UINT8_WIDTH);
         const size_t k(shift % UINT8_WIDTH);
@@ -138,10 +131,9 @@ namespace LongMath {
             forRet.numberArr.push_back(~c);
         }
 
-        forRet.purgeRadix();
-
         forRet.isNegative = !isNegative;
 
+        forRet.purgeRadix();
         return forRet;
     }
 
@@ -200,18 +192,18 @@ namespace LongMath {
 
         BigInt answer(0);
 
-        for (size_t i = 1; i < numberBI.numberArr.size(); i++) {
+        for (size_t i = 1; i < b.numberArr.size(); i++) {
             answer.numberArr.push_back(0);
         }
 
-        for (size_t i = answer.numberArr.size(); i < numberArr.size(); i++) {
+        for (size_t i = answer.numberArr.size(); i < a.size(); i++) {
             answer.numberArr.push_back(0);
         }
 
-        for (size_t i = 0; i < numberBI.numberArr.size(); i++) {
+        for (size_t i = 0; i < b.numberArr.size(); i++) {
             unsigned long long carry = 0;
             answer.numberArr.push_back(0);
-            for (size_t j = 0; j < numberArr.size(); j++) {
+            for (size_t j = 0; j < a.numberArr.size(); j++) {
                 carry += answer.numberArr[i + j] + a.numberArr[j] * b.numberArr[i];
                 answer.numberArr[i + j] = (uchar) (carry & UINT8_MAX);
                 carry >>= 8;
@@ -242,7 +234,7 @@ namespace LongMath {
         if (numberBI == ZERO) {
             throw std::invalid_argument("division by zero");
         }
-        const BigInt a(isNegative ? -(*this) : *this);
+        const BigInt a(         isNegative ? -(*this)  : *this);
         const BigInt b(numberBI.isNegative ? -numberBI : numberBI);
 
         BigInt l(0);
