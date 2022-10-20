@@ -21,7 +21,7 @@ namespace LongMath {
         const size_t j(shift / UINT8_WIDTH);
         const size_t k(shift % UINT8_WIDTH);
         for (size_t i = 0; i < numberArr.size(); i++) {
-            const int buf = (i + j < numberArr.size() ? numberArr[i + j] : isNegative ? UINT8_MAX : 0) +
+            const int buf = ( i + j     < numberArr.size() ? numberArr[i + j]     : isNegative ? UINT8_MAX : 0) +
                             ((i + j + 1 < numberArr.size() ? numberArr[i + j + 1] : isNegative ? UINT8_MAX : 0)
                                     << UINT8_WIDTH);
             numberArr[i] = (buf >> int(k)) & UINT8_MAX;
@@ -277,7 +277,7 @@ namespace LongMath {
 
         for (size_t i = 0; i < numberArr.size(); i++) {
             numberArr[i] ^= (i < numberBI.numberArr.size() ?
-                             numberBI.numberArr[i] : isNegative ? UINT8_MAX : 0);
+                             numberBI.numberArr[i] : numberBI.isNegative ? UINT8_MAX : 0);
         }
 
         isNegative ^= numberBI.isNegative;
@@ -511,31 +511,10 @@ namespace LongMath {
         return forRet;
     }
 
-    //
 
     // Stream operators
     std::ostream &operator<<(std::ostream &out, const BigInt &numberBI) {
-        std::vector<char> answer;
-        BigInt num(numberBI > ZERO ? numberBI : -numberBI);
-
-        if (num == ZERO) {
-            return out << 0;
-        }
-
-        while (num > ZERO) {
-            answer.push_back(char((num % uchar(DECIMAL_SYSTEM_BASE)) + '0'));
-            num /= DEC;
-        }
-
-        if (numberBI < ZERO) {
-            answer.push_back('-');
-        }
-
-        for (size_t i = answer.size(); i > 0; i--) {
-            out << answer[i - 1];
-        }
-
-        return out;
+        return out << std::string(numberBI);
     }
 
     std::istream &operator>>(std::istream &in, BigInt &numberBI) {
