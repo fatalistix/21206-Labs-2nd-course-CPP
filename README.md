@@ -1,1 +1,2 @@
-# Here you can find fatalistix's labs from 2nd course
+# Here you can find fatalistix's labs
+2nd course FIT, CPP
